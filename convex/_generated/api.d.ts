@@ -9,11 +9,13 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as chat from "../chat.js";
 import type * as friends from "../friends.js";
 import type * as groups from "../groups.js";
 import type * as http from "../http.js";
 import type * as optIns from "../optIns.js";
 import type * as pushSubscriptions from "../pushSubscriptions.js";
+import type * as sendNotification from "../sendNotification.js";
 
 import type {
   ApiFromModules,
@@ -23,11 +25,13 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  chat: typeof chat;
   friends: typeof friends;
   groups: typeof groups;
   http: typeof http;
   optIns: typeof optIns;
   pushSubscriptions: typeof pushSubscriptions;
+  sendNotification: typeof sendNotification;
 }>;
 
 /**

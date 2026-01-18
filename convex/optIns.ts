@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { auth } from "./auth";
+import { internal } from "./_generated/api";
 
 // Create an opt-in (declare availability)
 export const createOptIn = mutation({
@@ -56,7 +57,7 @@ export const createOptIn = mutation({
         });
 
         // Check for overlapping opt-ins and create match if found
-        await checkForMatches(ctx, args.groupId, optInId);
+        await checkForMatches(ctx, args.groupId, optInId, userId);
 
         return optInId;
     },
@@ -64,9 +65,10 @@ export const createOptIn = mutation({
 
 // Helper function to check for matches
 async function checkForMatches(
-    ctx: { db: { get: any; query: any; insert: any } },
+    ctx: { db: any; scheduler: any },
     groupId: any,
-    newOptInId: any
+    newOptInId: any,
+    triggeredByUserId: any
 ) {
     const newOptIn = await ctx.db.get(newOptInId);
     if (!newOptIn) return;
@@ -112,14 +114,18 @@ async function checkForMatches(
 
         if (!matchExists) {
             // Create new match
-            await ctx.db.insert("matches", {
+            const matchId = await ctx.db.insert("matches", {
                 groupId,
                 userIds: allUserIds,
                 optInIds: allOptInIds,
                 createdAt: Date.now(),
             });
 
-            // TODO: Send push notifications to matched users
+            // Schedule push notification to matched users
+            await ctx.scheduler.runAfter(0, internal.sendNotification.sendMatchNotification, {
+                matchId,
+                triggeredByUserId,
+            });
         }
     }
 }
@@ -243,3 +249,20 @@ export const getMyMatches = query({
     },
 });
 
+// Get a specific match by ID (used by notification action)
+export const getMatchById = query({
+    args: { matchId: v.id("matches") },
+    handler: async (ctx, args) => {
+        const match = await ctx.db.get(args.matchId);
+        if (!match) return null;
+
+        const group = await ctx.db.get(match.groupId);
+
+        return {
+            ...match,
+            group: group
+                ? { _id: group._id, name: group.name, iconEmoji: group.iconEmoji }
+                : null,
+        };
+    },
+});

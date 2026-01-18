@@ -57,6 +57,14 @@ export const removePushSubscription = mutation({
     },
 });
 
+// Remove subscription by ID (for cleanup of expired subscriptions)
+export const removeById = mutation({
+    args: { subscriptionId: v.id("pushSubscriptions") },
+    handler: async (ctx, args) => {
+        await ctx.db.delete(args.subscriptionId);
+    },
+});
+
 // Check if user has push subscription
 export const hasPushSubscription = query({
     args: {},
@@ -72,5 +80,16 @@ export const hasPushSubscription = query({
             .first();
 
         return !!subscription;
+    },
+});
+
+// Get all subscriptions for a user (used by notification action)
+export const getUserSubscriptions = query({
+    args: { userId: v.id("users") },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("pushSubscriptions")
+            .withIndex("by_user", (q) => q.eq("userId", args.userId))
+            .collect();
     },
 });

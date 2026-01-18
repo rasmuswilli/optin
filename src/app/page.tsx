@@ -173,10 +173,13 @@ function CurrentMatches() {
                 </p>
               </div>
             </div>
-            <button className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-500">
+            <Link
+              href={`/chat/${match._id}`}
+              className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-500"
+            >
               <MessageCircle className="h-4 w-4" />
               Chat
-            </button>
+            </Link>
           </div>
           <div className="mt-3 flex -space-x-2">
             {match.users.slice(0, 5).map((user, i) => (
@@ -265,8 +268,8 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                   key={group._id}
                   onClick={() => setSelectedGroupId(group._id)}
                   className={`flex w-full items-center gap-3 rounded-lg border p-3 transition-colors ${selectedGroupId === group._id
-                      ? "border-white bg-neutral-800"
-                      : "border-neutral-700 bg-neutral-800/50 hover:border-neutral-600"
+                    ? "border-white bg-neutral-800"
+                    : "border-neutral-700 bg-neutral-800/50 hover:border-neutral-600"
                     }`}
                 >
                   <span className="text-xl">{group.iconEmoji || "🎮"}</span>
@@ -288,8 +291,8 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                 key={mins}
                 onClick={() => setDuration(mins)}
                 className={`rounded-lg py-3 text-sm font-medium transition-colors ${duration === mins
-                    ? "bg-white text-neutral-900"
-                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                  ? "bg-white text-neutral-900"
+                  : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                   }`}
               >
                 {mins < 60 ? `${mins}m` : `${mins / 60}h`}
