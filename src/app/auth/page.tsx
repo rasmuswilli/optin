@@ -213,30 +213,41 @@ function AnonymousSignIn() {
     const { signIn } = useAuthActions();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const handleAnonymous = async () => {
         setIsLoading(true);
+        setError(null);
         try {
             await signIn("anonymous");
-            router.push("/");
-        } catch (error) {
-            console.error("Anonymous sign in failed:", error);
-        } finally {
+            // Wait a bit for auth state to update before redirecting
+            setTimeout(() => {
+                router.push("/");
+                router.refresh();
+            }, 500);
+        } catch (err: unknown) {
+            console.error("Anonymous sign in failed:", err);
+            setError("Failed to sign in. Please try again.");
             setIsLoading(false);
         }
     };
 
     return (
-        <button
-            onClick={handleAnonymous}
-            disabled={isLoading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-700 bg-neutral-800 py-3 font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
-        >
-            {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-                "Continue as Guest"
+        <div className="space-y-2">
+            <button
+                onClick={handleAnonymous}
+                disabled={isLoading}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-neutral-700 bg-neutral-800 py-3 font-medium text-white transition-colors hover:bg-neutral-700 disabled:opacity-50"
+            >
+                {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                    "Continue as Guest"
+                )}
+            </button>
+            {error && (
+                <p className="text-center text-sm text-red-400">{error}</p>
             )}
-        </button>
+        </div>
     );
 }
