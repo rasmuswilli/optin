@@ -47,20 +47,16 @@ export default function SettingsPage() {
                 {/* Account */}
                 <section className="space-y-3">
                     <h2 className="text-lg font-semibold text-neutral-300">Account</h2>
-                    <div className="overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900">
-                        <button className="flex w-full items-center gap-4 border-b border-neutral-800 p-4 text-left transition-colors hover:bg-neutral-800/50">
-                            <div className="rounded-lg bg-neutral-800 p-2">
-                                <User className="h-5 w-5 text-neutral-400" />
-                            </div>
-                            <div className="flex-1">
-                                <p className="font-medium text-white">Profile</p>
-                                <p className="text-sm text-neutral-400">
-                                    Update your name and avatar
-                                </p>
-                            </div>
-                        </button>
+                    {isAuthenticated ? (
+                        <ProfileSettings />
+                    ) : (
+                        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                            <p className="text-neutral-400">Sign in to manage your profile</p>
+                        </div>
+                    )}
 
-                        {isAuthenticated && (
+                    {isAuthenticated && (
+                        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900">
                             <button
                                 onClick={() => void signOut()}
                                 className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-neutral-800/50"
@@ -75,8 +71,8 @@ export default function SettingsPage() {
                                     </p>
                                 </div>
                             </button>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </section>
 
                 {/* App Info */}
@@ -98,6 +94,89 @@ export default function SettingsPage() {
                 </section>
             </div>
         </AppShell>
+    );
+}
+
+function ProfileSettings() {
+    const user = useQuery(api.users.getCurrentUser);
+    const updateProfile = useMutation(api.users.updateProfile);
+    const [name, setName] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
+    const [saved, setSaved] = useState(false);
+
+    // Initialize name from user data
+    useEffect(() => {
+        if (user?.name) {
+            setName(user.name);
+        }
+    }, [user?.name]);
+
+    const handleSave = async () => {
+        if (!name.trim()) return;
+        setIsSaving(true);
+        try {
+            await updateProfile({ name: name.trim() });
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        } catch (error) {
+            console.error("Failed to update profile:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (user === undefined) {
+        return (
+            <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900">
+            {/* Profile Header */}
+            <div className="flex items-center gap-4 border-b border-neutral-800 p-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-700 text-lg font-bold">
+                    {name?.charAt(0)?.toUpperCase() || "?"}
+                </div>
+                <div className="flex-1">
+                    <p className="font-medium text-white">{name || "Guest"}</p>
+                    <p className="text-sm text-neutral-400">
+                        {user?.email || "Anonymous user"}
+                    </p>
+                </div>
+            </div>
+
+            {/* Edit Name */}
+            <div className="p-4">
+                <label className="mb-2 block text-sm font-medium text-neutral-300">
+                    Display Name
+                </label>
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Enter your name"
+                        className="flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-2 text-white placeholder-neutral-500 focus:border-white focus:outline-none"
+                    />
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving || !name.trim() || name === user?.name}
+                        className="flex items-center gap-2 rounded-lg bg-white px-4 py-2 font-medium text-neutral-900 transition-colors hover:bg-neutral-200 disabled:opacity-50"
+                    >
+                        {isSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : saved ? (
+                            <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                            "Save"
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -207,8 +286,8 @@ function NotificationSettings() {
                     }
                     disabled={isLoading}
                     className={`rounded-lg px-4 py-2 font-medium transition-colors ${hasSub
-                            ? "bg-neutral-700 text-white hover:bg-neutral-600"
-                            : "bg-white text-neutral-900 hover:bg-neutral-200"
+                        ? "bg-neutral-700 text-white hover:bg-neutral-600"
+                        : "bg-white text-neutral-900 hover:bg-neutral-200"
                         } disabled:opacity-50`}
                 >
                     {isLoading ? (

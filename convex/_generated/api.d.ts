@@ -16,6 +16,7 @@ import type * as http from "../http.js";
 import type * as optIns from "../optIns.js";
 import type * as pushSubscriptions from "../pushSubscriptions.js";
 import type * as sendNotification from "../sendNotification.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   optIns: typeof optIns;
   pushSubscriptions: typeof pushSubscriptions;
   sendNotification: typeof sendNotification;
+  users: typeof users;
 }>;
 
 /**
