@@ -206,20 +206,55 @@ function CurrentMatches() {
 function OptInModal({ onClose }: { onClose: () => void }) {
   const groups = useQuery(api.groups.getMyGroups);
   const createOptIn = useMutation(api.optIns.createOptIn);
-  const [selectedGroupId, setSelectedGroupId] = useState<Id<"groups"> | null>(null);
-  const [duration, setDuration] = useState<number>(60); // minutes
+  const [selectedGroupId, setSelectedGroupId] = useState<Id<"groups"> | null>(
+    null
+  );
+
+  // Time selection state
+  const [isCustomStart, setIsCustomStart] = useState(false);
+  const [customStartTime, setCustomStartTime] = useState("");
+  const [duration, setDuration] = useState<number | "custom">(60); // minutes or "custom"
+  const [customEndTime, setCustomEndTime] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Helper to get effective start time
+  const getStartTime = () => {
+    if (isCustomStart && customStartTime) {
+      return new Date(customStartTime).getTime();
+    }
+    return Date.now();
+  };
+
+  // Helper to get effective end time
+  const getEndTime = () => {
+    const start = getStartTime();
+    if (duration === "custom" && customEndTime) {
+      return new Date(customEndTime).getTime();
+    }
+    if (typeof duration === "number") {
+      return start + duration * 60 * 1000;
+    }
+    return start + 60 * 60 * 1000; // Default fallback 1h
+  };
 
   const handleSubmit = async () => {
     if (!selectedGroupId) return;
 
+    const startsAt = getStartTime();
+    const endsAt = getEndTime();
+
+    if (endsAt <= startsAt) {
+      alert("End time must be after start time");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const now = Date.now();
       await createOptIn({
         groupId: selectedGroupId,
-        startsAt: now,
-        endsAt: now + duration * 60 * 1000,
+        startsAt,
+        endsAt,
       });
       onClose();
     } catch (error) {
@@ -227,6 +262,13 @@ function OptInModal({ onClose }: { onClose: () => void }) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Helper for datetime-local strings
+  const toDateTimeLocal = (date: Date) => {
+    const offset = date.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(date.getTime() - offset).toISOString().slice(0, 16);
+    return localISOTime;
   };
 
   return (
@@ -268,8 +310,8 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                   key={group._id}
                   onClick={() => setSelectedGroupId(group._id)}
                   className={`flex w-full items-center gap-3 rounded-lg border p-3 transition-colors ${selectedGroupId === group._id
-                    ? "border-white bg-neutral-800"
-                    : "border-neutral-700 bg-neutral-800/50 hover:border-neutral-600"
+                      ? "border-white bg-neutral-800"
+                      : "border-neutral-700 bg-neutral-800/50 hover:border-neutral-600"
                     }`}
                 >
                   <span className="text-xl">{group.iconEmoji || "🎮"}</span>
@@ -280,25 +322,89 @@ function OptInModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        {/* Duration Selection */}
+        {/* Start Time Selection */}
         <div className="mb-6">
           <label className="mb-2 block text-sm font-medium text-neutral-300">
-            How long are you available?
+            Start Time
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsCustomStart(false)}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${!isCustomStart
+                  ? "bg-white text-neutral-900"
+                  : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                }`}
+            >
+              Now
+            </button>
+            <button
+              onClick={() => {
+                setIsCustomStart(true);
+                if (!customStartTime) {
+                  setCustomStartTime(toDateTimeLocal(new Date()));
+                }
+              }}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${isCustomStart
+                  ? "bg-white text-neutral-900"
+                  : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                }`}
+            >
+              Custom
+            </button>
+          </div>
+          {isCustomStart && (
+            <input
+              type="datetime-local"
+              value={customStartTime}
+              onChange={(e) => setCustomStartTime(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-white placeholder-neutral-500 focus:border-white focus:outline-none"
+            />
+          )}
+        </div>
+
+        {/* Duration/End Time Selection */}
+        <div className="mb-6">
+          <label className="mb-2 block text-sm font-medium text-neutral-300">
+            End Time / Duration
           </label>
           <div className="grid grid-cols-4 gap-2">
             {[30, 60, 120, 180].map((mins) => (
               <button
                 key={mins}
                 onClick={() => setDuration(mins)}
-                className={`rounded-lg py-3 text-sm font-medium transition-colors ${duration === mins
-                  ? "bg-white text-neutral-900"
-                  : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                className={`rounded-lg py-2 text-sm font-medium transition-colors ${duration === mins
+                    ? "bg-white text-neutral-900"
+                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                   }`}
               >
                 {mins < 60 ? `${mins}m` : `${mins / 60}h`}
               </button>
             ))}
+            <button
+              onClick={() => {
+                setDuration("custom");
+                if (!customEndTime) {
+                  // Default to 1 hour from start
+                  const start = getStartTime();
+                  setCustomEndTime(toDateTimeLocal(new Date(start + 60 * 60 * 1000)));
+                }
+              }}
+              className={`col-span-4 rounded-lg py-2 text-sm font-medium transition-colors ${duration === "custom"
+                  ? "bg-white text-neutral-900"
+                  : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                }`}
+            >
+              Custom End Time
+            </button>
           </div>
+          {duration === "custom" && (
+            <input
+              type="datetime-local"
+              value={customEndTime}
+              onChange={(e) => setCustomEndTime(e.target.value)}
+              className="mt-2 w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-white placeholder-neutral-500 focus:border-white focus:outline-none"
+            />
+          )}
         </div>
 
         {/* Submit Button */}
