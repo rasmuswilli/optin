@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { AppShell } from "@/components/AppShell";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -36,46 +35,42 @@ export default function ChatPage() {
 
     if (initializing || !chatDetails) {
         return (
-            <AppShell>
-                <div className="flex h-full items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
-                </div>
-            </AppShell>
+            <div className="flex h-screen items-center justify-center bg-neutral-950">
+                <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
+            </div>
         );
     }
 
     return (
-        <AppShell>
-            <div className="flex h-full flex-col">
-                {/* Header */}
-                <div className="border-b border-neutral-800 pb-4">
-                    <Link
-                        href="/"
-                        className="mb-2 inline-flex items-center gap-2 text-neutral-400 hover:text-white"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back
-                    </Link>
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-800 text-xl">
-                            {chatDetails.group?.iconEmoji || "💬"}
-                        </div>
-                        <div>
-                            <h1 className="font-bold">{chatDetails.group?.name || "Chat"}</h1>
-                            <p className="text-sm text-neutral-400">
-                                {chatDetails.participants?.map((p) => p?.name || "?").join(", ")}
-                            </p>
-                        </div>
+        <div className="flex h-screen flex-col bg-neutral-950 text-white">
+            {/* Header - fixed at top */}
+            <header className="flex-shrink-0 border-b border-neutral-800 bg-neutral-900 px-4 py-3 safe-top">
+                <Link
+                    href="/"
+                    className="mb-2 inline-flex items-center gap-2 text-neutral-400 hover:text-white"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                </Link>
+                <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-800 text-xl">
+                        {chatDetails.group?.iconEmoji || "💬"}
+                    </div>
+                    <div>
+                        <h1 className="font-bold">{chatDetails.group?.name || "Chat"}</h1>
+                        <p className="text-sm text-neutral-400">
+                            {chatDetails.participants?.map((p) => p?.name || "?").join(", ")}
+                        </p>
                     </div>
                 </div>
+            </header>
 
-                {/* Messages */}
-                {chatId && <MessageList chatId={chatId} />}
+            {/* Messages - scrollable middle section */}
+            {chatId && <MessageList chatId={chatId} />}
 
-                {/* Input */}
-                {chatId && <MessageInput chatId={chatId} />}
-            </div>
-        </AppShell>
+            {/* Input - fixed at bottom */}
+            {chatId && <MessageInput chatId={chatId} />}
+        </div>
     );
 }
 
@@ -104,7 +99,7 @@ function MessageList({ chatId }: { chatId: Id<"chats"> }) {
     }
 
     return (
-        <div className="flex-1 overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="space-y-4">
                 {messages.map((msg) => (
                     <div
@@ -155,26 +150,28 @@ function MessageInput({ chatId }: { chatId: Id<"chats"> }) {
     return (
         <form
             onSubmit={handleSubmit}
-            className="flex items-center gap-3 border-t border-neutral-800 pt-4"
+            className="flex-shrink-0 border-t border-neutral-800 bg-neutral-900 px-4 py-3 pb-safe"
         >
-            <input
-                type="text"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 rounded-full border border-neutral-700 bg-neutral-800 px-4 py-3 text-white placeholder-neutral-500 focus:border-white focus:outline-none"
-            />
-            <button
-                type="submit"
-                disabled={!text.trim() || isSending}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-neutral-900 transition-colors hover:bg-neutral-200 disabled:opacity-50"
-            >
-                {isSending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                    <Send className="h-5 w-5" />
-                )}
-            </button>
+            <div className="flex items-center gap-3">
+                <input
+                    type="text"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 rounded-full border border-neutral-700 bg-neutral-800 px-4 py-3 text-white placeholder-neutral-500 focus:border-white focus:outline-none"
+                />
+                <button
+                    type="submit"
+                    disabled={!text.trim() || isSending}
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-neutral-900 transition-colors hover:bg-neutral-200 disabled:opacity-50"
+                >
+                    {isSending ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                        <Send className="h-5 w-5" />
+                    )}
+                </button>
+            </div>
         </form>
     );
 }
