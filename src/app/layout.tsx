@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { ServiceWorkerRegistration } from "./ServiceWorkerRegistration";
+import { NotificationOnboarding } from "@/components/NotificationOnboarding";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,6 +50,7 @@ export default function RootLayout({
       >
         <ConvexClientProvider>
           <ServiceWorkerRegistration />
+          <NotificationOnboarding />
           {children}
         </ConvexClientProvider>
       </body>
