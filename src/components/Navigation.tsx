@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, Users, UserPlus } from "lucide-react";
+import { Home, Users, UserPlus, User } from "lucide-react";
 import { useConvexAuth } from "convex/react";
 
 interface NavItem {
@@ -95,7 +95,7 @@ export function SideNav() {
                         className="flex w-full items-center gap-3 rounded-lg bg-neutral-800/50 px-4 py-3 transition-colors hover:bg-neutral-800"
                     >
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-sm font-bold">
-                            ✓
+                            <User className="h-4 w-4" />
                         </div>
                         <div className="flex-1 text-left">
                             <p className="text-sm font-medium text-white">Profile</p>
