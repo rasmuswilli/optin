@@ -7,6 +7,7 @@ import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Id } from "../../../../convex/_generated/dataModel";
+import { SideNav } from "@/components/Navigation";
 
 export default function ChatPage() {
     const params = useParams();
@@ -35,16 +36,23 @@ export default function ChatPage() {
 
     if (initializing || !chatDetails) {
         return (
-            <div className="flex h-screen items-center justify-center bg-neutral-950">
+            <div className="flex h-screen items-center justify-center bg-neutral-950 md:pl-64">
+                <SideNav />
                 <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
             </div>
         );
     }
 
     return (
-        <div className="flex h-screen flex-col bg-neutral-950 text-white">
-            {/* Header - fixed at top */}
-            <header className="flex-shrink-0 border-b border-neutral-800 bg-neutral-900 px-4 py-3 safe-top">
+        <div className="flex h-screen flex-col bg-neutral-950 text-white md:pl-64">
+            {/* Desktop sidebar */}
+            <SideNav />
+
+            {/* Header - fixed at top with safe area */}
+            <header
+                className="flex-shrink-0 border-b border-neutral-800 bg-neutral-900 px-4 py-3"
+                style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}
+            >
                 <Link
                     href="/"
                     className="mb-2 inline-flex items-center gap-2 text-neutral-400 hover:text-white"
@@ -108,8 +116,8 @@ function MessageList({ chatId }: { chatId: Id<"chats"> }) {
                     >
                         <div
                             className={`max-w-[80%] rounded-2xl px-4 py-2 ${msg.isMe
-                                    ? "bg-white text-neutral-900"
-                                    : "bg-neutral-800 text-white"
+                                ? "bg-white text-neutral-900"
+                                : "bg-neutral-800 text-white"
                                 }`}
                         >
                             {!msg.isMe && (
@@ -150,7 +158,8 @@ function MessageInput({ chatId }: { chatId: Id<"chats"> }) {
     return (
         <form
             onSubmit={handleSubmit}
-            className="flex-shrink-0 border-t border-neutral-800 bg-neutral-900 px-4 py-3 pb-safe"
+            className="flex-shrink-0 border-t border-neutral-800 bg-neutral-900 px-4 py-3"
+            style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
         >
             <div className="flex items-center gap-3">
                 <input
