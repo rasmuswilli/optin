@@ -144,7 +144,21 @@ export const cancelOptIn = mutation({
             throw new Error("Not authorized to cancel this opt-in");
         }
 
+        // Mark opt-in as expired
         await ctx.db.patch(args.optInId, { status: "expired" });
+
+        // Find and delete any matches that included this opt-in
+        const matchesWithOptIn = await ctx.db
+            .query("matches")
+            .withIndex("by_group", (q) => q.eq("groupId", optIn.groupId))
+            .collect();
+
+        // Delete matches where this opt-in was a participant
+        for (const match of matchesWithOptIn) {
+            if (match.optInIds.includes(args.optInId)) {
+                await ctx.db.delete(match._id);
+            }
+        }
     },
 });
 
