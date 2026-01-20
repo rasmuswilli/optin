@@ -22,28 +22,30 @@ export function AppShell({ children }: AppShellProps) {
             <main className="pb-20 md:pb-0 md:pl-64">
                 {/* Mobile header */}
                 <header
-                    className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-neutral-800 bg-neutral-900/95 px-4 backdrop-blur-sm md:hidden"
+                    className="sticky top-0 z-40 border-b border-neutral-800 bg-neutral-900/95 px-4 backdrop-blur-sm md:hidden"
                     style={{ paddingTop: "env(safe-area-inset-top)" }}
                 >
-                    <h1 className="text-lg font-bold">Optin</h1>
-                    {!isLoading && (
-                        isAuthenticated ? (
-                            <Link
-                                href="/settings"
-                                className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-sm font-bold"
-                            >
-                                <User className="h-4 w-4" />
-                            </Link>
-                        ) : (
-                            <Link
-                                href="/auth"
-                                className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-neutral-900"
-                            >
-                                <LogIn className="h-4 w-4" />
-                                Sign In
-                            </Link>
-                        )
-                    )}
+                    <div className="flex h-14 items-center justify-between">
+                        <h1 className="text-lg font-bold">Optin</h1>
+                        {!isLoading && (
+                            isAuthenticated ? (
+                                <Link
+                                    href="/settings"
+                                    className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-sm font-bold"
+                                >
+                                    <User className="h-4 w-4" />
+                                </Link>
+                            ) : (
+                                <Link
+                                    href="/auth"
+                                    className="flex items-center gap-2 rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-neutral-900"
+                                >
+                                    <LogIn className="h-4 w-4" />
+                                    Sign In
+                                </Link>
+                            )
+                        )}
+                    </div>
                 </header>
 
                 {/* Page content */}
