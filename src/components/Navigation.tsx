@@ -2,9 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Home, Users, UserPlus, Settings } from "lucide-react";
+import { Home, Users, UserPlus } from "lucide-react";
 import { useConvexAuth } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
 
 interface NavItem {
     href: string;
@@ -16,7 +15,6 @@ const navItems: NavItem[] = [
     { href: "/", label: "Home", icon: Home },
     { href: "/groups", label: "Groups", icon: Users },
     { href: "/friends", label: "Friends", icon: UserPlus },
-    { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function BottomNav() {
@@ -53,7 +51,6 @@ export function BottomNav() {
 export function SideNav() {
     const pathname = usePathname();
     const { isAuthenticated, isLoading } = useConvexAuth();
-    const { signIn, signOut } = useAuthActions();
 
     return (
         <nav className="fixed left-0 top-0 hidden h-full w-64 flex-col border-r border-neutral-800 bg-neutral-900 md:flex">
@@ -93,18 +90,18 @@ export function SideNav() {
                         </div>
                     </div>
                 ) : isAuthenticated ? (
-                    <button
-                        onClick={() => void signOut()}
+                    <Link
+                        href="/settings"
                         className="flex w-full items-center gap-3 rounded-lg bg-neutral-800/50 px-4 py-3 transition-colors hover:bg-neutral-800"
                     >
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-600 text-sm font-bold">
                             ✓
                         </div>
                         <div className="flex-1 text-left">
-                            <p className="text-sm font-medium text-white">Signed In</p>
-                            <p className="text-xs text-neutral-400">Click to sign out</p>
+                            <p className="text-sm font-medium text-white">Profile</p>
+                            <p className="text-xs text-neutral-400">View settings</p>
                         </div>
-                    </button>
+                    </Link>
                 ) : (
                     <Link
                         href="/auth"
@@ -121,4 +118,3 @@ export function SideNav() {
         </nav>
     );
 }
-

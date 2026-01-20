@@ -21,7 +21,10 @@ export function AppShell({ children }: AppShellProps) {
             {/* Main content area */}
             <main className="pb-20 md:pb-0 md:pl-64">
                 {/* Mobile header */}
-                <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-neutral-800 bg-neutral-900/95 px-4 backdrop-blur-sm md:hidden">
+                <header
+                    className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-neutral-800 bg-neutral-900/95 px-4 backdrop-blur-sm md:hidden"
+                    style={{ paddingTop: "env(safe-area-inset-top)" }}
+                >
                     <h1 className="text-lg font-bold">Optin</h1>
                     {!isLoading && (
                         isAuthenticated ? (
