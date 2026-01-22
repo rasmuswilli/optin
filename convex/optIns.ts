@@ -214,11 +214,30 @@ export const cleanupExpiredOptIns = mutation({
             )
             .collect();
 
+        let matchesDeleted = 0;
+
         for (const optIn of expiredOptIns) {
             await ctx.db.patch(optIn._id, { status: "expired" });
+
+            // Find and delete any matches that included this opt-in
+            const matchesWithOptIn = await ctx.db
+                .query("matches")
+                .withIndex("by_group", (q) => q.eq("groupId", optIn.groupId))
+                .collect();
+
+            for (const match of matchesWithOptIn) {
+                if (match.optInIds.includes(optIn._id)) {
+                    // Check if match still exists (might have been deleted in this loop already if multiple users expired)
+                    const existingMatch = await ctx.db.get(match._id);
+                    if (existingMatch) {
+                        await ctx.db.delete(match._id);
+                        matchesDeleted++;
+                    }
+                }
+            }
         }
 
-        return { cleaned: expiredOptIns.length };
+        return { cleanedOptIns: expiredOptIns.length, matchesDeleted };
     },
 });
 
