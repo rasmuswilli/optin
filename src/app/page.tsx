@@ -277,7 +277,10 @@ function OptInModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 md:items-center">
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 md:items-center"
+      style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+    >
       <div className="w-full max-w-md rounded-2xl bg-neutral-900 p-6">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
@@ -328,8 +331,8 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                       key={group._id}
                       onClick={() => toggleGroup(group._id)}
                       className={`flex w-full items-center gap-3 rounded-xl border p-4 transition-colors ${isSelected
-                          ? "border-green-500 bg-green-950/50"
-                          : "border-neutral-700 bg-neutral-800/50 hover:border-neutral-600"
+                        ? "border-green-500 bg-green-950/50"
+                        : "border-neutral-700 bg-neutral-800/50 hover:border-neutral-600"
                         }`}
                     >
                       <span className="text-2xl">{group.iconEmoji || "🎮"}</span>
@@ -366,8 +369,8 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                 <button
                   onClick={() => setIsCustomStart(false)}
                   className={`rounded-xl py-4 text-sm font-medium transition-colors ${!isCustomStart
-                      ? "bg-white text-neutral-900"
-                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                    ? "bg-white text-neutral-900"
+                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                     }`}
                 >
                   Now
@@ -380,8 +383,8 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                     }
                   }}
                   className={`rounded-xl py-4 text-sm font-medium transition-colors ${isCustomStart
-                      ? "bg-white text-neutral-900"
-                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                    ? "bg-white text-neutral-900"
+                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                     }`}
                 >
                   Later
@@ -413,8 +416,8 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                     key={opt.value}
                     onClick={() => setDuration(opt.value)}
                     className={`rounded-xl py-4 text-sm font-medium transition-colors ${duration === opt.value
-                        ? "bg-white text-neutral-900"
-                        : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                      ? "bg-white text-neutral-900"
+                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                       }`}
                   >
                     {opt.label}
@@ -430,8 +433,8 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                   }
                 }}
                 className={`mt-3 w-full rounded-xl py-4 text-sm font-medium transition-colors ${duration === "custom"
-                    ? "bg-white text-neutral-900"
-                    : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                  ? "bg-white text-neutral-900"
+                  : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                   }`}
               >
                 Custom End Time
