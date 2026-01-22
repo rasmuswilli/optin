@@ -216,6 +216,7 @@ export const cleanupExpiredOptIns = mutation({
 
         let matchesDeleted = 0;
 
+        // 1. Handle newly expired opt-ins
         for (const optIn of expiredOptIns) {
             await ctx.db.patch(optIn._id, { status: "expired" });
 
@@ -227,12 +228,34 @@ export const cleanupExpiredOptIns = mutation({
 
             for (const match of matchesWithOptIn) {
                 if (match.optInIds.includes(optIn._id)) {
-                    // Check if match still exists (might have been deleted in this loop already if multiple users expired)
+                    // Check if match still exists (might have been deleted in this loop already)
                     const existingMatch = await ctx.db.get(match._id);
                     if (existingMatch) {
                         await ctx.db.delete(match._id);
                         matchesDeleted++;
                     }
+                }
+            }
+        }
+
+        // 2. Safety Net: Clean up "zombie" matches (matches referring to invalid/inactive opt-ins)
+        // This handles cases where opt-ins expired before this script was running
+        const allMatches = await ctx.db.query("matches").collect();
+        for (const match of allMatches) {
+            // Check if this match is already valid (referenced active opt-ins)
+            // We need to fetch all opt-ins for this match
+            const optInsProm = match.optInIds.map((id) => ctx.db.get(id));
+            const optIns = await Promise.all(optInsProm);
+
+            // If any opt-in is missing OR not active -> Match is invalid
+            const isInvalid = optIns.some((o) => !o || o.status !== "active");
+
+            if (isInvalid) {
+                // Double check it wasn't already deleted in step 1
+                const stillExists = await ctx.db.get(match._id);
+                if (stillExists) {
+                    await ctx.db.delete(match._id);
+                    matchesDeleted++;
                 }
             }
         }
