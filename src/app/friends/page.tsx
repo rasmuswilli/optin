@@ -141,7 +141,6 @@ function FriendsList() {
     if (friends.length === 0) {
         return (
             <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-neutral-300">Your Friends</h2>
                 <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-8">
                     <div className="flex flex-col items-center gap-4 text-center">
                         <div className="rounded-full bg-neutral-800 p-4">
@@ -161,7 +160,6 @@ function FriendsList() {
 
     return (
         <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-neutral-300">Your Friends</h2>
             <div className="space-y-2">
                 {friends.map(({ friendshipId, friend }) => (
                     <div

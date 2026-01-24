@@ -37,7 +37,7 @@ export default function Home() {
 
         {/* Bottom CTA - Fixed at bottom on mobile */}
         <div
-          className="sticky bottom-16 -mx-4 mt-6 bg-neutral-950 px-4 pb-2 pt-2 md:relative md:bottom-0 md:mx-0 md:mt-8 md:bg-transparent md:p-0"
+          className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 mt-6 bg-neutral-950 px-4 pb-6 pt-2 md:relative md:bottom-0 md:mx-0 md:mt-8 md:bg-transparent md:p-0"
         >
           {isAuthenticated ? (
             <button
