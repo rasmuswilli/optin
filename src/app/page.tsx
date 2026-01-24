@@ -395,7 +395,7 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                   type="datetime-local"
                   value={customStartTime}
                   onChange={(e) => setCustomStartTime(e.target.value)}
-                  className="mt-3 w-full rounded-xl border border-neutral-700 bg-neutral-800 px-4 py-3 text-white focus:border-white focus:outline-none"
+                  className="mt-3 block w-full min-w-0 max-w-full box-border rounded-xl border border-neutral-700 bg-neutral-800 px-4 py-3 text-white focus:border-white focus:outline-none sm:text-sm"
                 />
               )}
             </div>
@@ -444,7 +444,7 @@ function OptInModal({ onClose }: { onClose: () => void }) {
                   type="datetime-local"
                   value={customEndTime}
                   onChange={(e) => setCustomEndTime(e.target.value)}
-                  className="mt-3 w-full rounded-xl border border-neutral-700 bg-neutral-800 px-4 py-3 text-white focus:border-white focus:outline-none"
+                  className="mt-3 block w-full min-w-0 max-w-full box-border rounded-xl border border-neutral-700 bg-neutral-800 px-4 py-3 text-white focus:border-white focus:outline-none sm:text-sm"
                 />
               )}
             </div>
