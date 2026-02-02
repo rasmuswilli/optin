@@ -156,7 +156,10 @@ function CreateGroupModal({ onClose }: { onClose: () => void }) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div
+            className="fixed inset-0 z-[60] flex items-end justify-center bg-black/50 p-4 md:items-center"
+            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+        >
             <div className="w-full max-w-md rounded-2xl bg-neutral-900 p-6">
                 <div className="mb-6 flex items-center justify-between">
                     <h2 className="text-xl font-bold">Create Group</h2>
