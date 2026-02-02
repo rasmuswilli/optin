@@ -17,40 +17,47 @@ export default function GroupsPage() {
 
     return (
         <AppShell>
-            <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">Groups</h1>
-                        <p className="text-neutral-400">Your shared interest groups</p>
+            <div className="flex min-h-[calc(100vh-10rem)] flex-col md:min-h-0 md:block">
+                {/* Main content */}
+                <div className="flex-1 space-y-6">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h1 className="text-2xl font-bold">Groups</h1>
+                            <p className="text-neutral-400">Your shared interest groups</p>
+                        </div>
                     </div>
-                    {isAuthenticated && (
-                        <button
-                            onClick={() => setShowCreateModal(true)}
-                            className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 font-semibold text-neutral-900 transition-colors hover:bg-neutral-200"
-                        >
-                            <Plus className="h-4 w-4" />
-                            New
-                        </button>
+
+                    {/* Groups List */}
+                    {isAuthenticated ? (
+                        <GroupsList />
+                    ) : (
+                        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-8">
+                            <div className="flex flex-col items-center gap-4 text-center">
+                                <div className="rounded-full bg-neutral-800 p-4">
+                                    <Users className="h-8 w-8 text-neutral-500" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-white">Sign in to see your groups</h3>
+                                    <p className="mt-1 text-sm text-neutral-500">
+                                        Click &quot;Not signed in&quot; in the sidebar to get started
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </div>
 
-                {/* Groups List */}
-                {isAuthenticated ? (
-                    <GroupsList />
-                ) : (
-                    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-8">
-                        <div className="flex flex-col items-center gap-4 text-center">
-                            <div className="rounded-full bg-neutral-800 p-4">
-                                <Users className="h-8 w-8 text-neutral-500" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-white">Sign in to see your groups</h3>
-                                <p className="mt-1 text-sm text-neutral-500">
-                                    Click &quot;Not signed in&quot; in the sidebar to get started
-                                </p>
-                            </div>
-                        </div>
+                {/* Bottom CTA - Fixed at bottom on mobile */}
+                {isAuthenticated && (
+                    <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] -mx-4 mt-6 bg-neutral-950 px-4 pb-6 pt-2 md:relative md:bottom-0 md:mx-0 md:mt-8 md:bg-transparent md:p-0">
+                        <button
+                            onClick={() => setShowCreateModal(true)}
+                            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-5 text-lg font-semibold text-neutral-900 shadow-lg transition-colors hover:bg-neutral-200 md:py-4 md:shadow-none"
+                        >
+                            <Plus className="h-6 w-6" />
+                            New
+                        </button>
                     </div>
                 )}
 
