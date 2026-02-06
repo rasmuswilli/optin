@@ -69,6 +69,13 @@ export default function ChatPage() {
                         <p className="text-sm text-neutral-400">
                             {chatDetails.participants?.map((p) => p?.name || "?").join(", ")}
                         </p>
+                        <p className="text-xs text-neutral-500">
+                            {chatDetails.match.state === "upcoming"
+                                ? `Starts in ${formatStartsIn(chatDetails.match.startsInMinutes)}`
+                                : "Live now"}{" "}
+                            • {formatDuration(chatDetails.match.overlapMinutes)} overlap •{" "}
+                            {formatTime(chatDetails.match.overlapStart)} - {formatTime(chatDetails.match.overlapEnd)}
+                        </p>
                     </div>
                 </div>
             </header>
@@ -80,6 +87,27 @@ export default function ChatPage() {
             {chatId && <MessageInput chatId={chatId} />}
         </div>
     );
+}
+
+function formatTime(timestamp: number): string {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDuration(minutes: number): string {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const remaining = minutes % 60;
+    if (remaining === 0) return `${hours}h`;
+    return `${hours}h ${remaining}m`;
+}
+
+function formatStartsIn(minutes: number): string {
+    if (minutes < 60) return `${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    const remaining = minutes % 60;
+    if (remaining === 0) return `${hours}h`;
+    return `${hours}h ${remaining}m`;
 }
 
 function MessageList({ chatId }: { chatId: Id<"chats"> }) {

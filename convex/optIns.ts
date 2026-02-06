@@ -1,19 +1,41 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { auth } from "./auth";
 import { internal } from "./_generated/api";
 
+const MIN_OVERLAP_MINUTES = 15;
+const MS_PER_MINUTE = 60 * 1000;
+
+type DbContext = {
+    db: any;
+    scheduler: any;
+};
+
+type CandidateMatch = {
+    matchKey: string;
+    userIds: any[];
+    optInIds: any[];
+    overlapStart: number;
+    overlapEnd: number;
+    overlapMinutes: number;
+};
+
 // Create an opt-in (declare availability)
 export const createOptIn = mutation({
     args: {
         groupId: v.id("groups"),
-        startsAt: v.number(), // When availability begins (timestamp)
-        endsAt: v.number(), // When availability ends (timestamp)
+        startsAt: v.number(),
+        endsAt: v.number(),
     },
     handler: async (ctx, args) => {
         const userId = await auth.getUserId(ctx);
         if (!userId) {
             throw new Error("Not authenticated");
+        }
+
+        if (args.endsAt <= args.startsAt) {
+            throw new Error("End time must be after start time");
         }
 
         // Verify user is a member of the group
@@ -38,11 +60,12 @@ export const createOptIn = mutation({
             .first();
 
         if (existingOptIn) {
-            // Update existing opt-in
+            // Update existing opt-in and recompute matches for the group.
             await ctx.db.patch(existingOptIn._id, {
                 startsAt: args.startsAt,
                 endsAt: args.endsAt,
             });
+            await recomputeGroupMatches(ctx, args.groupId, userId);
             return existingOptIn._id;
         }
 
@@ -56,24 +79,124 @@ export const createOptIn = mutation({
             status: "active",
         });
 
-        // Check for overlapping opt-ins and create match if found
-        await checkForMatches(ctx, args.groupId, optInId, userId);
+        // Recompute matches for this group.
+        await recomputeGroupMatches(ctx, args.groupId, userId);
 
         return optInId;
     },
 });
 
-// Helper function to check for matches
-async function checkForMatches(
-    ctx: { db: any; scheduler: any },
-    groupId: any,
-    newOptInId: any,
-    triggeredByUserId: any
-) {
-    const newOptIn = await ctx.db.get(newOptInId);
-    if (!newOptIn) return;
+function getMatchState(overlapStart: number, overlapEnd: number, now: number): "upcoming" | "live" {
+    if (overlapStart > now) return "upcoming";
+    if (overlapEnd > now) return "live";
+    return "live";
+}
 
-    // Get all active opt-ins for this group
+function buildCandidates(activeOptIns: any[], groupId: string): CandidateMatch[] {
+    if (activeOptIns.length < 2) return [];
+
+    const userToOptIn = new Map<string, any>();
+    for (const optIn of activeOptIns) {
+        userToOptIn.set(String(optIn.userId), optIn);
+    }
+
+    const boundaries = Array.from(
+        new Set(activeOptIns.flatMap((optIn) => [optIn.startsAt, optIn.endsAt]))
+    ).sort((a, b) => a - b);
+
+    if (boundaries.length < 2) return [];
+
+    const rawSegments: Array<{ start: number; end: number; userIds: any[]; optInIds: any[] }> = [];
+
+    for (let i = 0; i < boundaries.length - 1; i++) {
+        const start = boundaries[i];
+        const end = boundaries[i + 1];
+
+        if (end <= start) continue;
+
+        const overlapping = activeOptIns.filter(
+            (optIn) => optIn.startsAt <= start && optIn.endsAt >= end
+        );
+
+        if (overlapping.length < 2) continue;
+
+        const userIds = Array.from(new Set(overlapping.map((o) => o.userId))).sort();
+        if (userIds.length < 2) continue;
+
+        const optInIds = userIds
+            .map((userId) => userToOptIn.get(String(userId))?._id)
+            .filter(Boolean)
+            .map((id) => id);
+
+        rawSegments.push({ start, end, userIds, optInIds });
+    }
+
+    // Merge adjacent segments with identical participant set.
+    const merged: Array<{ start: number; end: number; userIds: any[]; optInIds: any[] }> = [];
+    for (const segment of rawSegments) {
+        const last = merged[merged.length - 1];
+        if (
+            last &&
+            last.end === segment.start &&
+            JSON.stringify(last.userIds) === JSON.stringify(segment.userIds)
+        ) {
+            last.end = segment.end;
+        } else {
+            merged.push({ ...segment });
+        }
+    }
+
+    return merged
+        .map((segment) => {
+            const overlapMinutes = Math.floor((segment.end - segment.start) / MS_PER_MINUTE);
+            const matchKey = `${groupId}:${segment.userIds.join(",")}:${segment.start}:${segment.end}`;
+            return {
+                matchKey,
+                userIds: segment.userIds,
+                optInIds: segment.optInIds,
+                overlapStart: segment.start,
+                overlapEnd: segment.end,
+                overlapMinutes,
+            };
+        })
+        .filter((candidate) => candidate.overlapMinutes >= MIN_OVERLAP_MINUTES);
+}
+
+async function scheduleNotificationsForNewMatch(
+    ctx: DbContext,
+    matchId: any,
+    overlapStart: number,
+    triggeredByUserId?: any
+) {
+    if (triggeredByUserId) {
+        await ctx.scheduler.runAfter(0, internal.sendNotification.sendMatchNotification, {
+            matchId,
+            triggeredByUserId,
+        });
+    }
+
+    const now = Date.now();
+    const reminderMinutes = [60, 10];
+
+    for (const minutesBefore of reminderMinutes) {
+        const delay = overlapStart - now - minutesBefore * MS_PER_MINUTE;
+        if (delay > 0) {
+            await ctx.scheduler.runAfter(delay, internal.sendNotification.sendMatchReminder, {
+                matchId,
+                minutesBefore,
+            });
+        }
+    }
+}
+
+async function recomputeGroupMatches(
+    ctx: DbContext,
+    groupId: any,
+    triggeredByUserId?: any
+) {
+    const now = Date.now();
+
+    // Use active, non-expired opt-ins as the source of truth.
     const activeOptIns = await ctx.db
         .query("optIns")
         .withIndex("by_group_and_status", (q: any) =>
@@ -81,52 +204,69 @@ async function checkForMatches(
         )
         .collect();
 
-    // Find overlapping opt-ins
-    const overlapping = activeOptIns.filter((optIn: any) => {
-        if (optIn._id === newOptInId) return false; // Skip self
+    const validOptIns = activeOptIns.filter((optIn: any) => optIn.endsAt > now);
+    const candidates = buildCandidates(validOptIns, String(groupId));
 
-        // Check for time overlap
-        const overlapStart = Math.max(optIn.startsAt, newOptIn.startsAt);
-        const overlapEnd = Math.min(optIn.endsAt, newOptIn.endsAt);
+    const existingMatches = await ctx.db
+        .query("matches")
+        .withIndex("by_group", (q: any) => q.eq("groupId", groupId))
+        .collect();
 
-        return overlapStart < overlapEnd; // There is overlap
-    });
+    const existingByKey = new Map<string, any>(
+        existingMatches.map((match: any) => [match.matchKey, match])
+    );
+    const candidateKeys = new Set(candidates.map((candidate) => candidate.matchKey));
 
-    if (overlapping.length > 0) {
-        // We have a match! Create match record
-        const allOptInIds = [newOptInId, ...overlapping.map((o: any) => o._id)];
-        const allUserIds = [
-            newOptIn.userId,
-            ...overlapping.map((o: any) => o.userId),
-        ];
+    // Delete stale matches no longer valid after recomputation.
+    for (const match of existingMatches) {
+        if (!candidateKeys.has(match.matchKey)) {
+            await ctx.db.delete(match._id);
+        }
+    }
 
-        // Check if a match with these exact users already exists
-        const existingMatches = await ctx.db
-            .query("matches")
-            .withIndex("by_group", (q: any) => q.eq("groupId", groupId))
-            .collect();
+    // Create or update valid matches.
+    for (const candidate of candidates) {
+        const state = getMatchState(candidate.overlapStart, candidate.overlapEnd, now);
+        const existing = existingByKey.get(candidate.matchKey);
 
-        const matchExists = existingMatches.some((match: any) => {
-            const sortedExisting = [...match.userIds].sort();
-            const sortedNew = [...allUserIds].sort();
-            return JSON.stringify(sortedExisting) === JSON.stringify(sortedNew);
+        if (existing) {
+            await ctx.db.patch(existing._id, {
+                userIds: candidate.userIds,
+                optInIds: candidate.optInIds,
+                overlapStart: candidate.overlapStart,
+                overlapEnd: candidate.overlapEnd,
+                overlapMinutes: candidate.overlapMinutes,
+                state,
+                startsInMinutes: Math.max(
+                    0,
+                    Math.ceil((candidate.overlapStart - Date.now()) / MS_PER_MINUTE)
+                ),
+            });
+            continue;
+        }
+
+        const matchId = await ctx.db.insert("matches", {
+            groupId,
+            userIds: candidate.userIds,
+            optInIds: candidate.optInIds,
+            createdAt: now,
+            matchKey: candidate.matchKey,
+            overlapStart: candidate.overlapStart,
+            overlapEnd: candidate.overlapEnd,
+            overlapMinutes: candidate.overlapMinutes,
+            state,
+            startsInMinutes: Math.max(
+                0,
+                Math.ceil((candidate.overlapStart - Date.now()) / MS_PER_MINUTE)
+            ),
         });
 
-        if (!matchExists) {
-            // Create new match
-            const matchId = await ctx.db.insert("matches", {
-                groupId,
-                userIds: allUserIds,
-                optInIds: allOptInIds,
-                createdAt: Date.now(),
-            });
-
-            // Schedule push notification to matched users
-            await ctx.scheduler.runAfter(0, internal.sendNotification.sendMatchNotification, {
-                matchId,
-                triggeredByUserId,
-            });
-        }
+        await scheduleNotificationsForNewMatch(
+            ctx,
+            matchId,
+            candidate.overlapStart,
+            triggeredByUserId
+        );
     }
 }
 
@@ -144,21 +284,9 @@ export const cancelOptIn = mutation({
             throw new Error("Not authorized to cancel this opt-in");
         }
 
-        // Mark opt-in as expired
+        // Mark opt-in as expired and recompute match graph for the group.
         await ctx.db.patch(args.optInId, { status: "expired" });
-
-        // Find and delete any matches that included this opt-in
-        const matchesWithOptIn = await ctx.db
-            .query("matches")
-            .withIndex("by_group", (q) => q.eq("groupId", optIn.groupId))
-            .collect();
-
-        // Delete matches where this opt-in was a participant
-        for (const match of matchesWithOptIn) {
-            if (match.optInIds.includes(args.optInId)) {
-                await ctx.db.delete(match._id);
-            }
-        }
+        await recomputeGroupMatches(ctx, optIn.groupId, userId);
     },
 });
 
@@ -196,7 +324,6 @@ export const getMyActiveOptIns = query({
                 })
         );
 
-        // Note: Expired opt-ins should be cleaned up by a scheduled function, not in a query
         return activeOptIns;
     },
 });
@@ -214,50 +341,43 @@ export const cleanupExpiredOptIns = mutation({
             )
             .collect();
 
-        let matchesDeleted = 0;
+        const touchedGroups = new Set<string>();
 
-        // 1. Handle newly expired opt-ins
         for (const optIn of expiredOptIns) {
             await ctx.db.patch(optIn._id, { status: "expired" });
-
-            // Find and delete any matches that included this opt-in
-            const matchesWithOptIn = await ctx.db
-                .query("matches")
-                .withIndex("by_group", (q) => q.eq("groupId", optIn.groupId))
-                .collect();
-
-            for (const match of matchesWithOptIn) {
-                if (match.optInIds.includes(optIn._id)) {
-                    // Check if match still exists (might have been deleted in this loop already)
-                    const existingMatch = await ctx.db.get(match._id);
-                    if (existingMatch) {
-                        await ctx.db.delete(match._id);
-                        matchesDeleted++;
-                    }
-                }
-            }
+            touchedGroups.add(String(optIn.groupId));
         }
 
-        // 2. Safety Net: Clean up "zombie" matches (matches referring to invalid/inactive opt-ins)
-        // This handles cases where opt-ins expired before this script was running
+        // Keep match state fresh for groups with active opt-ins, even when no one just changed.
+        const activeOptIns = await ctx.db
+            .query("optIns")
+            .withIndex("by_user_and_status")
+            .filter((q) => q.eq(q.field("status"), "active"))
+            .collect();
+        for (const optIn of activeOptIns) {
+            touchedGroups.add(String(optIn.groupId));
+        }
+
+        for (const groupId of touchedGroups) {
+            await recomputeGroupMatches(ctx, groupId);
+        }
+
+        // Safety net: remove matches that are already fully in the past.
         const allMatches = await ctx.db.query("matches").collect();
+        let matchesDeleted = 0;
+
         for (const match of allMatches) {
-            // Check if this match is already valid (referenced active opt-ins)
-            // We need to fetch all opt-ins for this match
-            const optInsProm = match.optInIds.map((id) => ctx.db.get(id));
-            const optIns = await Promise.all(optInsProm);
-
-            // If any opt-in is missing OR not active -> Match is invalid
-            const isInvalid = optIns.some((o) => !o || o.status !== "active");
-
-            if (isInvalid) {
-                // Double check it wasn't already deleted in step 1
-                const stillExists = await ctx.db.get(match._id);
-                if (stillExists) {
-                    await ctx.db.delete(match._id);
-                    matchesDeleted++;
-                }
+            if (match.overlapEnd <= now) {
+                await ctx.db.delete(match._id);
+                matchesDeleted++;
+                continue;
             }
+
+            const state = getMatchState(match.overlapStart, match.overlapEnd, now);
+            await ctx.db.patch(match._id, {
+                state,
+                startsInMinutes: Math.max(0, Math.ceil((match.overlapStart - now) / MS_PER_MINUTE)),
+            });
         }
 
         return { cleanedOptIns: expiredOptIns.length, matchesDeleted };
@@ -273,24 +393,28 @@ export const getMyMatches = query({
             return [];
         }
 
+        const now = Date.now();
+
         // Get all matches
         const allMatches = await ctx.db.query("matches").collect();
 
-        // Filter to matches that include this user
-        const myMatches = allMatches.filter((match) =>
-            match.userIds.includes(userId)
+        // Filter to matches that include this user and are still relevant.
+        const myMatches = allMatches.filter(
+            (match) => match.userIds.includes(userId) && match.overlapEnd > now
         );
 
         // Get details for each match
         const matchDetails = await Promise.all(
             myMatches.map(async (match) => {
                 const group = await ctx.db.get(match.groupId);
-                const users = await Promise.all(
-                    match.userIds.map((id) => ctx.db.get(id))
-                );
+                const users = await Promise.all(match.userIds.map((id) => ctx.db.get(id)));
+
+                const state = getMatchState(match.overlapStart, match.overlapEnd, now);
 
                 return {
                     ...match,
+                    state,
+                    startsInMinutes: Math.max(0, Math.ceil((match.overlapStart - now) / MS_PER_MINUTE)),
                     group: group
                         ? { _id: group._id, name: group.name, iconEmoji: group.iconEmoji }
                         : null,
@@ -301,11 +425,11 @@ export const getMyMatches = query({
             })
         );
 
-        return matchDetails;
+        return matchDetails.sort((a, b) => a.overlapStart - b.overlapStart);
     },
 });
 
-// Get a specific match by ID (used by notification action)
+// Get a specific match by ID (used by notification actions)
 export const getMatchById = query({
     args: { matchId: v.id("matches") },
     handler: async (ctx, args) => {
@@ -313,9 +437,12 @@ export const getMatchById = query({
         if (!match) return null;
 
         const group = await ctx.db.get(match.groupId);
+        const now = Date.now();
 
         return {
             ...match,
+            state: getMatchState(match.overlapStart, match.overlapEnd, now),
+            startsInMinutes: Math.max(0, Math.ceil((match.overlapStart - now) / MS_PER_MINUTE)),
             group: group
                 ? { _id: group._id, name: group.name, iconEmoji: group.iconEmoji }
                 : null,

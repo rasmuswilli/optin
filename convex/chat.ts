@@ -2,6 +2,14 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { auth } from "./auth";
 
+const MS_PER_MINUTE = 60 * 1000;
+
+function getMatchState(overlapStart: number, overlapEnd: number, now: number): "upcoming" | "live" {
+    if (overlapStart > now) return "upcoming";
+    if (overlapEnd > now) return "live";
+    return "live";
+}
+
 // Get or create a chat for a match
 export const getOrCreateChat = mutation({
     args: { matchId: v.id("matches") },
@@ -69,9 +77,16 @@ export const getChatByMatch = query({
             })
         );
 
+        const now = Date.now();
+        const hydratedMatch = {
+            ...match,
+            state: getMatchState(match.overlapStart, match.overlapEnd, now),
+            startsInMinutes: Math.max(0, Math.ceil((match.overlapStart - now) / MS_PER_MINUTE)),
+        };
+
         return {
             ...chat,
-            match,
+            match: hydratedMatch,
             group: group ? { _id: group._id, name: group.name, iconEmoji: group.iconEmoji } : null,
             participants: participants.filter(Boolean),
         };

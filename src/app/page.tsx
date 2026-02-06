@@ -149,53 +149,122 @@ function CurrentMatches() {
     return <EmptyMatches />;
   }
 
+  const liveMatches = matches.filter((match) => match.state === "live");
+  const upcomingMatches = matches.filter((match) => match.state === "upcoming");
+
   return (
     <div className="space-y-3">
-      {matches.map((match) => (
-        <div
-          key={match._id}
-          className="rounded-xl border border-green-900/50 bg-green-950/30 p-4"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-900/50 text-xl">
-                {match.group?.iconEmoji || "🎮"}
+      {liveMatches.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-green-300">
+            Live Now
+          </h3>
+          {liveMatches.map((match) => (
+            <div
+              key={match._id}
+              className="rounded-xl border border-green-900/50 bg-green-950/30 p-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-900/50 text-xl">
+                    {match.group?.iconEmoji || "🎮"}
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">
+                      {match.group?.name || "Unknown Group"}
+                    </p>
+                    <p className="text-sm text-green-400">
+                      {match.users.length} people ready • {formatDuration(match.overlapMinutes)} overlap
+                    </p>
+                    <p className="text-xs text-green-200/80">
+                      {formatDateTime(match.overlapStart)} - {formatDateTime(match.overlapEnd)}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href={`/chat/${match._id}`}
+                  className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-500"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Chat
+                </Link>
               </div>
-              <div>
-                <p className="font-medium text-white">
-                  {match.group?.name || "Unknown Group"}
-                </p>
-                <p className="text-sm text-green-400">
-                  {match.users.length} people ready!
-                </p>
+              <div className="mt-3 flex -space-x-2">
+                {match.users.slice(0, 5).map((user) => (
+                  <div
+                    key={user._id}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-green-950 bg-neutral-700 text-xs font-medium"
+                    title={user.name || "User"}
+                  >
+                    {user.name?.charAt(0) || "?"}
+                  </div>
+                ))}
+                {match.users.length > 5 && (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-green-950 bg-neutral-800 text-xs font-medium">
+                    +{match.users.length - 5}
+                  </div>
+                )}
               </div>
             </div>
-            <Link
-              href={`/chat/${match._id}`}
-              className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-500"
-            >
-              <MessageCircle className="h-4 w-4" />
-              Chat
-            </Link>
-          </div>
-          <div className="mt-3 flex -space-x-2">
-            {match.users.slice(0, 5).map((user) => (
-              <div
-                key={user._id}
-                className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-green-950 bg-neutral-700 text-xs font-medium"
-                title={user.name || "User"}
-              >
-                {user.name?.charAt(0) || "?"}
-              </div>
-            ))}
-            {match.users.length > 5 && (
-              <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-green-950 bg-neutral-800 text-xs font-medium">
-                +{match.users.length - 5}
-              </div>
-            )}
-          </div>
+          ))}
         </div>
-      ))}
+      )}
+
+      {upcomingMatches.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-blue-300">
+            Upcoming
+          </h3>
+          {upcomingMatches.map((match) => (
+            <div
+              key={match._id}
+              className="rounded-xl border border-blue-900/60 bg-blue-950/20 p-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-900/40 text-xl">
+                    {match.group?.iconEmoji || "🎮"}
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">
+                      {match.group?.name || "Unknown Group"}
+                    </p>
+                    <p className="text-sm text-blue-300">
+                      Starts in {formatStartsIn(match.startsInMinutes)} • {formatDuration(match.overlapMinutes)} overlap
+                    </p>
+                    <p className="text-xs text-blue-100/80">
+                      {formatDateTime(match.overlapStart)} - {formatDateTime(match.overlapEnd)}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href={`/chat/${match._id}`}
+                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-500"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Plan
+                </Link>
+              </div>
+              <div className="mt-3 flex -space-x-2">
+                {match.users.slice(0, 5).map((user) => (
+                  <div
+                    key={user._id}
+                    className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-blue-950 bg-neutral-700 text-xs font-medium"
+                    title={user.name || "User"}
+                  >
+                    {user.name?.charAt(0) || "?"}
+                  </div>
+                ))}
+                {match.users.length > 5 && (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-blue-950 bg-neutral-800 text-xs font-medium">
+                    +{match.users.length - 5}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -477,4 +546,25 @@ function OptInModal({ onClose }: { onClose: () => void }) {
 function formatTime(timestamp: number): string {
   const date = new Date(timestamp);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDateTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  return date.toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+  if (remaining === 0) return `${hours}h`;
+  return `${hours}h ${remaining}m`;
+}
+
+function formatStartsIn(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+  if (remaining === 0) return `${hours}h`;
+  return `${hours}h ${remaining}m`;
 }

@@ -74,6 +74,12 @@ export default defineSchema({
         optInIds: v.array(v.id("optIns")),
         createdAt: v.number(),
         chatId: v.optional(v.id("chats")),
+        matchKey: v.string(),
+        overlapStart: v.number(),
+        overlapEnd: v.number(),
+        overlapMinutes: v.number(),
+        state: v.union(v.literal("upcoming"), v.literal("live")),
+        startsInMinutes: v.number(),
     }).index("by_group", ["groupId"]),
 
     // Push subscriptions for notifications
