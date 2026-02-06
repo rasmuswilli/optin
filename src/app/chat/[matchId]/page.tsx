@@ -32,7 +32,16 @@ export default function ChatPage() {
         init();
     }, [matchId, getOrCreateChat]);
 
-    const chatDetails = useQuery(api.chat.getChatByMatch, { matchId });
+    const chatDetailsQuery = useQuery(api.chat.getChatByMatch, { matchId });
+    const [lastChatDetails, setLastChatDetails] = useState<typeof chatDetailsQuery>(undefined);
+
+    useEffect(() => {
+        if (chatDetailsQuery !== undefined) {
+            setLastChatDetails(chatDetailsQuery);
+        }
+    }, [chatDetailsQuery]);
+
+    const chatDetails = chatDetailsQuery ?? lastChatDetails;
 
     if (initializing || !chatDetails) {
         return (
@@ -111,14 +120,23 @@ function formatStartsIn(minutes: number): string {
 }
 
 function MessageList({ chatId }: { chatId: Id<"chats"> }) {
-    const messages = useQuery(api.chat.getMessages, { chatId });
+    const messagesQuery = useQuery(api.chat.getMessages, { chatId });
+    const [lastMessages, setLastMessages] = useState<typeof messagesQuery>(undefined);
+    useEffect(() => {
+        if (messagesQuery !== undefined) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setLastMessages(messagesQuery);
+        }
+    }, [messagesQuery]);
+
+    const messages = messagesQuery ?? lastMessages;
     const bottomRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [messages?.length]);
 
-    if (messages === undefined) {
+    if (!messages) {
         return (
             <div className="flex flex-1 items-center justify-center">
                 <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />

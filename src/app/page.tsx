@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { AppShell } from "@/components/AppShell";
@@ -87,10 +87,20 @@ function EmptyMatches() {
 }
 
 function ActiveOptIns() {
-  const optIns = useQuery(api.optIns.getMyActiveOptIns);
+  const optInsQuery = useQuery(api.optIns.getMyActiveOptIns);
   const cancelOptIn = useMutation(api.optIns.cancelOptIn);
+  const [lastOptIns, setLastOptIns] = useState<typeof optInsQuery>(undefined);
 
-  if (optIns === undefined) {
+  useEffect(() => {
+    if (optInsQuery !== undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLastOptIns(optInsQuery);
+    }
+  }, [optInsQuery]);
+
+  const optIns = optInsQuery ?? lastOptIns;
+
+  if (!optIns) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
@@ -135,9 +145,19 @@ function ActiveOptIns() {
 }
 
 function CurrentMatches() {
-  const matches = useQuery(api.optIns.getMyMatches);
+  const matchesQuery = useQuery(api.optIns.getMyMatches);
+  const [lastMatches, setLastMatches] = useState<typeof matchesQuery>(undefined);
 
-  if (matches === undefined) {
+  useEffect(() => {
+    if (matchesQuery !== undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLastMatches(matchesQuery);
+    }
+  }, [matchesQuery]);
+
+  const matches = matchesQuery ?? lastMatches;
+
+  if (!matches) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
