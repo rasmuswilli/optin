@@ -75,7 +75,10 @@ export function NotificationOnboarding() {
     if (!showPrompt) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 md:items-center">
+        <div
+            className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 md:items-center"
+            style={{ paddingBottom: "max(1rem, calc(env(safe-area-inset-bottom) + 5rem))" }}
+        >
             <div className="w-full max-w-sm animate-slide-up rounded-2xl bg-neutral-900 p-6 shadow-xl">
                 <div className="mb-4 flex items-start justify-between">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-900/50">
