@@ -89,7 +89,7 @@ export default function SettingsPage() {
                             <div>
                                 <p className="font-medium text-white">Optin</p>
                                 <p className="text-sm text-neutral-400">
-                                    Version 1.0.0 • Made with ❤️
+                                    Version 1.0.1 • Made with ❤️
                                 </p>
                             </div>
                         </div>
