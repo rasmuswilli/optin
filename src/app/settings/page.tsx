@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { AppShell } from "@/components/AppShell";
-import { Bell, User, LogOut, Info, Loader2, Check, X, BellOff } from "lucide-react";
+import { Bell, LogOut, Info, Loader2, Check, X, BellOff } from "lucide-react";
 import { useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import {
@@ -14,6 +14,9 @@ import {
     isNotificationSupported,
     getNotificationPermission,
 } from "@/lib/notifications";
+import { getCachedQueryData, storeCachedQueryData } from "@/lib/uiQueryCache";
+
+const CACHE_KEY_SETTINGS_CURRENT_USER = "settings:current-user";
 
 export default function SettingsPage() {
     const { isAuthenticated } = useConvexAuth();
@@ -98,11 +101,18 @@ export default function SettingsPage() {
 }
 
 function ProfileSettings() {
-    const user = useQuery(api.users.getCurrentUser);
+    const userQuery = useQuery(api.users.getCurrentUser);
     const updateProfile = useMutation(api.users.updateProfile);
     const [name, setName] = useState("");
     const [isSaving, setIsSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+
+    useEffect(() => {
+        storeCachedQueryData(CACHE_KEY_SETTINGS_CURRENT_USER, userQuery);
+    }, [userQuery]);
+
+    const user =
+        userQuery ?? getCachedQueryData<typeof userQuery>(CACHE_KEY_SETTINGS_CURRENT_USER);
 
     // Initialize name from user data
     useEffect(() => {
@@ -126,9 +136,13 @@ function ProfileSettings() {
     };
 
     if (user === undefined) {
+        return <ProfileSettingsSkeleton />;
+    }
+
+    if (user === null) {
         return (
-            <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                <p className="text-neutral-400">Profile data is unavailable right now.</p>
             </div>
         );
     }
@@ -175,6 +189,24 @@ function ProfileSettings() {
                         )}
                     </button>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function ProfileSettingsSkeleton() {
+    return (
+        <div className="overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900">
+            <div className="flex animate-pulse items-center gap-4 border-b border-neutral-800 p-4">
+                <div className="h-12 w-12 rounded-full bg-neutral-800" />
+                <div className="flex-1 space-y-2">
+                    <div className="h-4 w-24 rounded bg-neutral-800" />
+                    <div className="h-3 w-32 rounded bg-neutral-800" />
+                </div>
+            </div>
+            <div className="animate-pulse space-y-3 p-4">
+                <div className="h-3 w-24 rounded bg-neutral-800" />
+                <div className="h-10 w-full rounded-lg bg-neutral-800" />
             </div>
         </div>
     );

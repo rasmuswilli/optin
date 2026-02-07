@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { AppShell } from "@/components/AppShell";
 import { Plus, Users, X, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useConvexAuth } from "convex/react";
+import { getCachedQueryData, storeCachedQueryData } from "@/lib/uiQueryCache";
 
 // Common emoji options for groups
 const EMOJI_OPTIONS = ["🎮", "⚽", "🎬", "☕", "🍺", "🎵", "📚", "🏃", "🎨", "🍕", "🎲", "🏀"];
+const CACHE_KEY_GROUPS_LIST = "groups:list";
 
 export default function GroupsPage() {
     const { isAuthenticated } = useConvexAuth();
@@ -71,14 +73,17 @@ export default function GroupsPage() {
 }
 
 function GroupsList() {
-    const groups = useQuery(api.groups.getMyGroups);
+    const groupsQuery = useQuery(api.groups.getMyGroups);
 
-    if (groups === undefined) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
-            </div>
-        );
+    useEffect(() => {
+        storeCachedQueryData(CACHE_KEY_GROUPS_LIST, groupsQuery);
+    }, [groupsQuery]);
+
+    const groups =
+        groupsQuery ?? getCachedQueryData<typeof groupsQuery>(CACHE_KEY_GROUPS_LIST);
+
+    if (!groups) {
+        return <GroupsListSkeleton />;
     }
 
     if (groups.length === 0) {
@@ -123,6 +128,25 @@ function GroupsList() {
                         </p>
                     </div>
                 </Link>
+            ))}
+        </div>
+    );
+}
+
+function GroupsListSkeleton() {
+    return (
+        <div className="grid gap-4 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+                <div
+                    key={`groups-skeleton-${index}`}
+                    className="flex animate-pulse items-start gap-4 rounded-xl border border-neutral-800 bg-neutral-900 p-4"
+                >
+                    <div className="h-12 w-12 rounded-xl bg-neutral-800" />
+                    <div className="flex-1 space-y-2">
+                        <div className="h-4 w-28 rounded bg-neutral-800" />
+                        <div className="h-3 w-24 rounded bg-neutral-800" />
+                    </div>
+                </div>
             ))}
         </div>
     );

@@ -1,10 +1,11 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { BottomNav, SideNav } from "./Navigation";
 import { useConvexAuth } from "convex/react";
 import Link from "next/link";
 import { LogIn, User } from "lucide-react";
+import { clearQueryCache } from "@/lib/uiQueryCache";
 
 interface AppShellProps {
     children: ReactNode;
@@ -12,6 +13,12 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
     const { isAuthenticated, isLoading } = useConvexAuth();
+
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            clearQueryCache();
+        }
+    }, [isAuthenticated, isLoading]);
 
     return (
         <div className="min-h-screen bg-neutral-950 text-white">

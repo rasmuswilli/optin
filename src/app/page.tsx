@@ -8,9 +8,10 @@ import { Clock, Plus, X, Loader2, MessageCircle, Users, Check, ArrowRight, Arrow
 import { useConvexAuth } from "convex/react";
 import Link from "next/link";
 import { Id } from "../../convex/_generated/dataModel";
+import { getCachedQueryData, storeCachedQueryData } from "@/lib/uiQueryCache";
 
-let cachedActiveOptIns: unknown = undefined;
-let cachedMatches: unknown = undefined;
+const CACHE_KEY_HOME_ACTIVE_OPT_INS = "home:active-opt-ins";
+const CACHE_KEY_HOME_MATCHES = "home:matches";
 
 export default function Home() {
   const { isAuthenticated } = useConvexAuth();
@@ -89,29 +90,73 @@ function EmptyMatches() {
   );
 }
 
+function ActiveOptInsSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div
+          key={`optin-skeleton-${index}`}
+          className="flex animate-pulse items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 p-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-neutral-800" />
+            <div className="space-y-2">
+              <div className="h-4 w-32 rounded bg-neutral-800" />
+              <div className="h-3 w-24 rounded bg-neutral-800" />
+            </div>
+          </div>
+          <div className="h-8 w-8 rounded-lg bg-neutral-800" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MatchesSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div
+          key={`match-skeleton-${index}`}
+          className="animate-pulse rounded-xl border border-neutral-800 bg-neutral-900 p-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-neutral-800" />
+              <div className="space-y-2">
+                <div className="h-4 w-36 rounded bg-neutral-800" />
+                <div className="h-3 w-24 rounded bg-neutral-800" />
+              </div>
+            </div>
+            <div className="h-9 w-16 rounded-lg bg-neutral-800" />
+          </div>
+          <div className="mt-3 flex gap-1">
+            {Array.from({ length: 4 }).map((_, avatarIndex) => (
+              <div
+                key={`match-skeleton-avatar-${index}-${avatarIndex}`}
+                className="h-8 w-8 rounded-full bg-neutral-800"
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ActiveOptIns() {
   const optInsQuery = useQuery(api.optIns.getMyActiveOptIns);
   const cancelOptIn = useMutation(api.optIns.cancelOptIn);
-  const [lastOptIns, setLastOptIns] = useState<typeof optInsQuery>(
-    cachedActiveOptIns as typeof optInsQuery
-  );
 
   useEffect(() => {
-    if (optInsQuery !== undefined) {
-      cachedActiveOptIns = optInsQuery;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLastOptIns(optInsQuery);
-    }
+    storeCachedQueryData(CACHE_KEY_HOME_ACTIVE_OPT_INS, optInsQuery);
   }, [optInsQuery]);
 
-  const optIns = optInsQuery ?? lastOptIns;
+  const optIns =
+    optInsQuery ?? getCachedQueryData<typeof optInsQuery>(CACHE_KEY_HOME_ACTIVE_OPT_INS);
 
   if (!optIns) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
-      </div>
-    );
+    return <ActiveOptInsSkeleton />;
   }
 
   if (optIns.length === 0) {
@@ -152,26 +197,16 @@ function ActiveOptIns() {
 
 function CurrentMatches() {
   const matchesQuery = useQuery(api.optIns.getMyMatches);
-  const [lastMatches, setLastMatches] = useState<typeof matchesQuery>(
-    cachedMatches as typeof matchesQuery
-  );
 
   useEffect(() => {
-    if (matchesQuery !== undefined) {
-      cachedMatches = matchesQuery;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLastMatches(matchesQuery);
-    }
+    storeCachedQueryData(CACHE_KEY_HOME_MATCHES, matchesQuery);
   }, [matchesQuery]);
 
-  const matches = matchesQuery ?? lastMatches;
+  const matches =
+    matchesQuery ?? getCachedQueryData<typeof matchesQuery>(CACHE_KEY_HOME_MATCHES);
 
   if (!matches) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
-      </div>
-    );
+    return <MatchesSkeleton />;
   }
 
   if (matches.length === 0) {

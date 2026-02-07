@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { AppShell } from "@/components/AppShell";
 import { UserPlus, X, Loader2, Check, Mail, Users } from "lucide-react";
 import { useConvexAuth } from "convex/react";
+import { getCachedQueryData, storeCachedQueryData } from "@/lib/uiQueryCache";
+
+const CACHE_KEY_FRIENDS_PENDING_REQUESTS = "friends:pending-requests";
+const CACHE_KEY_FRIENDS_LIST = "friends:list";
 
 export default function FriendsPage() {
     const { isAuthenticated } = useConvexAuth();
@@ -74,12 +78,20 @@ export default function FriendsPage() {
 }
 
 function PendingRequests() {
-    const requests = useQuery(api.friends.getPendingRequests);
+    const requestsQuery = useQuery(api.friends.getPendingRequests);
     const acceptRequest = useMutation(api.friends.acceptFriendRequest);
     const declineRequest = useMutation(api.friends.removeFriendship);
 
-    if (requests === undefined) {
-        return null;
+    useEffect(() => {
+        storeCachedQueryData(CACHE_KEY_FRIENDS_PENDING_REQUESTS, requestsQuery);
+    }, [requestsQuery]);
+
+    const requests =
+        requestsQuery ??
+        getCachedQueryData<typeof requestsQuery>(CACHE_KEY_FRIENDS_PENDING_REQUESTS);
+
+    if (!requests) {
+        return <PendingRequestsSkeleton />;
     }
 
     if (requests.length === 0) {
@@ -134,15 +146,18 @@ function PendingRequests() {
 }
 
 function FriendsList() {
-    const friends = useQuery(api.friends.getMyFriends);
+    const friendsQuery = useQuery(api.friends.getMyFriends);
     const removeFriend = useMutation(api.friends.removeFriendship);
 
-    if (friends === undefined) {
-        return (
-            <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-neutral-500" />
-            </div>
-        );
+    useEffect(() => {
+        storeCachedQueryData(CACHE_KEY_FRIENDS_LIST, friendsQuery);
+    }, [friendsQuery]);
+
+    const friends =
+        friendsQuery ?? getCachedQueryData<typeof friendsQuery>(CACHE_KEY_FRIENDS_LIST);
+
+    if (!friends) {
+        return <FriendsListSkeleton />;
     }
 
     if (friends.length === 0) {
@@ -197,6 +212,58 @@ function FriendsList() {
     );
 }
 
+function PendingRequestsSkeleton() {
+    return (
+        <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-neutral-300">Pending Requests</h2>
+            <div className="space-y-2">
+                {Array.from({ length: 2 }).map((_, index) => (
+                    <div
+                        key={`pending-skeleton-${index}`}
+                        className="flex animate-pulse items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 p-4"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-neutral-800" />
+                            <div className="space-y-2">
+                                <div className="h-4 w-28 rounded bg-neutral-800" />
+                                <div className="h-3 w-32 rounded bg-neutral-800" />
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="h-9 w-9 rounded-lg bg-neutral-800" />
+                            <div className="h-9 w-9 rounded-lg bg-neutral-800" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
+function FriendsListSkeleton() {
+    return (
+        <section className="space-y-3">
+            <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, index) => (
+                    <div
+                        key={`friends-skeleton-${index}`}
+                        className="flex animate-pulse items-center justify-between rounded-xl border border-neutral-800 bg-neutral-900 p-4"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-neutral-800" />
+                            <div className="space-y-2">
+                                <div className="h-4 w-28 rounded bg-neutral-800" />
+                                <div className="h-3 w-24 rounded bg-neutral-800" />
+                            </div>
+                        </div>
+                        <div className="h-9 w-9 rounded-lg bg-neutral-800" />
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+}
+
 function AddFriendModal({ onClose }: { onClose: () => void }) {
     const [email, setEmail] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -218,8 +285,10 @@ function AddFriendModal({ onClose }: { onClose: () => void }) {
             setTimeout(() => {
                 onClose();
             }, 1500);
-        } catch (err: any) {
-            setError(err.message || "Failed to send friend request");
+        } catch (err: unknown) {
+            const message =
+                err instanceof Error ? err.message : "Failed to send friend request";
+            setError(message);
         } finally {
             setIsSubmitting(false);
         }
