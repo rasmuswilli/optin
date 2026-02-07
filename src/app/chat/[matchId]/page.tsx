@@ -9,6 +9,9 @@ import { useParams } from "next/navigation";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { SideNav } from "@/components/Navigation";
 
+const cachedChatDetailsByMatchId = new Map<string, unknown>();
+const cachedMessagesByChatId = new Map<string, unknown>();
+
 export default function ChatPage() {
     const params = useParams();
     const matchId = params.matchId as Id<"matches">;
@@ -33,13 +36,16 @@ export default function ChatPage() {
     }, [matchId, getOrCreateChat]);
 
     const chatDetailsQuery = useQuery(api.chat.getChatByMatch, { matchId });
-    const [lastChatDetails, setLastChatDetails] = useState<typeof chatDetailsQuery>(undefined);
+    const [lastChatDetails, setLastChatDetails] = useState<typeof chatDetailsQuery>(
+        cachedChatDetailsByMatchId.get(String(matchId)) as typeof chatDetailsQuery
+    );
 
     useEffect(() => {
         if (chatDetailsQuery !== undefined) {
+            cachedChatDetailsByMatchId.set(String(matchId), chatDetailsQuery);
             setLastChatDetails(chatDetailsQuery);
         }
-    }, [chatDetailsQuery]);
+    }, [chatDetailsQuery, matchId]);
 
     const chatDetails = chatDetailsQuery ?? lastChatDetails;
 
@@ -121,13 +127,16 @@ function formatStartsIn(minutes: number): string {
 
 function MessageList({ chatId }: { chatId: Id<"chats"> }) {
     const messagesQuery = useQuery(api.chat.getMessages, { chatId });
-    const [lastMessages, setLastMessages] = useState<typeof messagesQuery>(undefined);
+    const [lastMessages, setLastMessages] = useState<typeof messagesQuery>(
+        cachedMessagesByChatId.get(String(chatId)) as typeof messagesQuery
+    );
     useEffect(() => {
         if (messagesQuery !== undefined) {
+            cachedMessagesByChatId.set(String(chatId), messagesQuery);
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setLastMessages(messagesQuery);
         }
-    }, [messagesQuery]);
+    }, [messagesQuery, chatId]);
 
     const messages = messagesQuery ?? lastMessages;
     const bottomRef = useRef<HTMLDivElement>(null);

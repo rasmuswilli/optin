@@ -9,6 +9,9 @@ import { useConvexAuth } from "convex/react";
 import Link from "next/link";
 import { Id } from "../../convex/_generated/dataModel";
 
+let cachedActiveOptIns: unknown = undefined;
+let cachedMatches: unknown = undefined;
+
 export default function Home() {
   const { isAuthenticated } = useConvexAuth();
   const [showOptInModal, setShowOptInModal] = useState(false);
@@ -89,10 +92,13 @@ function EmptyMatches() {
 function ActiveOptIns() {
   const optInsQuery = useQuery(api.optIns.getMyActiveOptIns);
   const cancelOptIn = useMutation(api.optIns.cancelOptIn);
-  const [lastOptIns, setLastOptIns] = useState<typeof optInsQuery>(undefined);
+  const [lastOptIns, setLastOptIns] = useState<typeof optInsQuery>(
+    cachedActiveOptIns as typeof optInsQuery
+  );
 
   useEffect(() => {
     if (optInsQuery !== undefined) {
+      cachedActiveOptIns = optInsQuery;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLastOptIns(optInsQuery);
     }
@@ -146,10 +152,13 @@ function ActiveOptIns() {
 
 function CurrentMatches() {
   const matchesQuery = useQuery(api.optIns.getMyMatches);
-  const [lastMatches, setLastMatches] = useState<typeof matchesQuery>(undefined);
+  const [lastMatches, setLastMatches] = useState<typeof matchesQuery>(
+    cachedMatches as typeof matchesQuery
+  );
 
   useEffect(() => {
     if (matchesQuery !== undefined) {
+      cachedMatches = matchesQuery;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLastMatches(matchesQuery);
     }
